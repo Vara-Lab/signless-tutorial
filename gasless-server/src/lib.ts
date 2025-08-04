@@ -43,7 +43,7 @@ export class GaslessService {
 
     if (existing) {
       console.log("⚠️ Voucher already exists:", existing[0]);
-      return existing[0] as HexString; 
+      return existing[0] as HexString;
     }
 
     return this.issue(account, programId, amount, durationInSec);
@@ -282,5 +282,9 @@ export class GaslessService {
     const seed = process.env.VOUCHER_ACCOUNT_SEED_HEX;
     const keyring = new Keyring({ type: "sr25519", ss58Format: 137 });
     return keyring.addFromSeed(hexToU8a(seed));
+  }
+
+  async getVouchersForAccount(account: string) {
+    return this.api.voucher.getAllForAccount(account);
   }
 }

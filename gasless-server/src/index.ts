@@ -22,7 +22,12 @@ async function main() {
   app.get("/gasless/voucher/:voucherId/status", async (req, res) => {
     try {
       const { voucherId } = req.params;
-      const status = await gaslessService.getVoucherStatus(voucherId);
+      const status = await gaslessService.getVoucherStatus(
+        voucherId.startsWith("0x")
+          ? (voucherId as `0x${string}`)
+          : (`0x${voucherId}` as `0x${string}`)
+      );
+
       console.log(status);
       res.send(status);
     } catch (err) {
@@ -31,51 +36,12 @@ async function main() {
     }
   });
 
-  app.get("/gasless/voucher/:program/status", async (req, res) => {
-    const { program } = req.params;
-    const { account } = req.query;
-
-    if (!account || typeof account !== "string") {
-      return res.status(400).json({ error: "Missing or invalid account" });
-    }
-
-    try {
-      const vouchers = await gaslessService.api.voucher.getAllForAccount(
-        account
-      );
-      const voucher = Object.values(vouchers).find(
-        (v) => Array.isArray(v.programs) && v.programs.includes(program)
-      );
-
-      if (!voucher) {
-        return res.json({
-          id: null,
-          enabled: false,
-          duration: 0,
-          varaToIssue: 0,
-        });
-      }
-
-      const voucherId = voucher.id.toHex();
-      const balanceInfo = await gaslessService.getVoucherStatus(voucherId);
-
-      return res.json({
-        id: voucherId,
-        enabled: balanceInfo.enabled,
-        duration: 3600,
-        varaToIssue: balanceInfo.rawBalance?.toNumber() ?? 0,
-      });
-    } catch (error) {
-      console.error("❌ Error getting voucher status:", error);
-      return res.status(500).json({ error: "Internal error" });
-    }
-  });
 
   app.post("/gasless/voucher/request", async (req, res) => {
     const { account, amount = 10000000000000, durationInSec = 3600 } = req.body;
 
     try {
-      const voucherId:HexString = await gaslessService.issue(
+      const voucherId: HexString = await gaslessService.issue(
         account,
         programId,
         amount,
@@ -88,7 +54,7 @@ async function main() {
       console.error("❌ Error creating voucher:", error);
       res
         .status(500)
-        .json({ error: "Failed to create voucher", details: error.message });
+        .json({ error: "Failed to create voucher", details: error instanceof Error ? error.message : String(error), });
     }
   });
 
